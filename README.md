@@ -98,6 +98,9 @@ php artisan migrate
 
 # 5. Probar el pipeline vectorial (Etapa 1)
 php artisan semanticdocs:test-stage1 --reset
+
+# 6. Ingestar y vectorizar un documento PDF o de texto (Etapa 2)
+php artisan semanticdocs:ingest ruta/al/documento.pdf --title="Título del Documento" --sync
 ```
 
 #### Parámetros en `.env`
@@ -126,11 +129,13 @@ OLLAMA_EMBED_DIM=768
   - [x] Servicio cliente `QdrantClient` (`createCollection`, `upsertPoints`, `search`, `delete`).
   - [x] Servicio embedder `OllamaEmbedder` (`embed`, `embedBatch`).
   - [x] Comando artisan `semanticdocs:test-stage1` con textos de reglamentos en español y pruebas de similitud semántica.
-- [ ] **Etapa 2: Ingesta de Documentos en Segundo Plano**
-  - [ ] Migración y modelo `Document` (`pending`, `processing`, `ready`, `failed`).
-  - [ ] Servicio `TextExtractor` (extracción de texto de PDFs).
-  - [ ] Servicio `Chunker` (fragmentación con overlap de tokens).
-  - [ ] Job en cola `ProcessDocument` con lotes de embeddings.
+- [x] **Etapa 2: Ingesta de Documentos en Segundo Plano**
+  - [x] Migración y modelo `Document` (`pending`, `processing`, `ready`, `failed`).
+  - [x] Servicio `TextExtractor` (extracción multi-página de PDFs y texto con `smalot/pdfparser`).
+  - [x] Servicio `Chunker` (fragmentación con overlap configurable de ~10-15%).
+  - [x] Job en cola `ProcessDocument` con generación de embeddings en lotes y actualización de estados.
+  - [x] Comando artisan `semanticdocs:ingest` para pruebas directas o asíncronas vía colas.
+  - [x] Suite de tests automatizados unitarios y de integración para la ingesta.
 - [ ] **Etapa 3: Búsqueda y UI**
   - [ ] Controlador `SearchController` y `DocumentController`.
   - [ ] Formulario de búsqueda con score de confianza y fragmento resaltado.
