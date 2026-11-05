@@ -9,7 +9,9 @@ use RuntimeException;
 class OllamaEmbedder
 {
     protected string $host;
+
     protected string $model;
+
     protected int $dimension;
 
     public function __construct(?string $host = null, ?string $model = null, ?int $dimension = null)
@@ -45,7 +47,7 @@ class OllamaEmbedder
         $batch = $this->embedBatch([$text]);
 
         if (empty($batch[0])) {
-            throw new RuntimeException("No embedding returned for text input.");
+            throw new RuntimeException('No embedding returned for text input.');
         }
 
         return $batch[0];
@@ -54,7 +56,7 @@ class OllamaEmbedder
     /**
      * Generate embedding vectors for an array of strings.
      *
-     * @param array<string> $texts
+     * @param  array<string>  $texts
      * @return array<array<float>>
      */
     public function embedBatch(array $texts): array
@@ -71,19 +73,19 @@ class OllamaEmbedder
                 'input' => count($texts) === 1 ? $texts[0] : array_values($texts),
             ]);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             Log::error('Ollama embed request failed', [
                 'model' => $this->model,
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
-            throw new RuntimeException("Ollama embed error: " . $response->body());
+            throw new RuntimeException('Ollama embed error: '.$response->body());
         }
 
         $embeddings = $response->json('embeddings', []);
 
         if (empty($embeddings)) {
-            throw new RuntimeException("Ollama returned empty embeddings response.");
+            throw new RuntimeException('Ollama returned empty embeddings response.');
         }
 
         return $embeddings;

@@ -34,7 +34,7 @@ class TestStage1Command extends Command
         $dimension = $embedder->getDimension();
         $model = $embedder->getModel();
 
-        $this->info("=== SemanticDocs: Verificación Etapa 1 ===");
+        $this->info('=== SemanticDocs: Verificación Etapa 1 ===');
         $this->line("• Colección Qdrant : <comment>{$collection}</comment>");
         $this->line("• Modelo Embeddings: <comment>{$model}</comment> ({$dimension} dims)");
 
@@ -47,15 +47,15 @@ class TestStage1Command extends Command
             $exists = false;
         }
 
-        if (!$exists) {
+        if (! $exists) {
             $this->info("Creando colección '{$collection}' en Qdrant...");
             $qdrant->createCollection($collection, $dimension, 'Cosine');
             $qdrant->createPayloadIndex($collection, 'user_id', 'integer');
             $qdrant->createPayloadIndex($collection, 'document_id', 'integer');
-            $this->info("✔ Colección e índices creados exitosamente.");
+            $this->info('✔ Colección e índices creados exitosamente.');
             $shouldIndex = true;
         } else {
-            $this->line("✔ La colección ya existe.");
+            $this->line('✔ La colección ya existe.');
             $shouldIndex = $this->option('reset');
         }
 
@@ -109,7 +109,7 @@ class TestStage1Command extends Command
         ];
 
         if ($shouldIndex) {
-            $this->info("Generando embeddings e insertando " . count($sampleDocs) . " fragmentos de prueba...");
+            $this->info('Generando embeddings e insertando '.count($sampleDocs).' fragmentos de prueba...');
             $points = [];
             $bar = $this->output->createProgressBar(count($sampleDocs));
 
@@ -133,7 +133,7 @@ class TestStage1Command extends Command
             $this->newLine();
 
             $qdrant->upsertPoints($collection, $points);
-            $this->info("✔ Fragmentos vectorizados e insertados en Qdrant con éxito.");
+            $this->info('✔ Fragmentos vectorizados e insertados en Qdrant con éxito.');
         }
 
         // 3. Ejecutar pruebas de búsqueda semántica
@@ -147,7 +147,7 @@ class TestStage1Command extends Command
             ];
 
         $this->newLine();
-        $this->info("=== Resultados de Búsqueda Semántica ===");
+        $this->info('=== Resultados de Búsqueda Semántica ===');
 
         foreach ($testQueries as $qText) {
             $this->line("\n<fg=cyan;options=bold>Pregunta:</> \"{$qText}\"");
@@ -173,7 +173,7 @@ class TestStage1Command extends Command
                 $rows[] = [
                     $score,
                     $payload['title'] ?? 'N/A',
-                    'Pág. ' . ($payload['page'] ?? '1'),
+                    'Pág. '.($payload['page'] ?? '1'),
                     Str::limit($payload['text'] ?? '', 85),
                 ];
             }
@@ -182,6 +182,7 @@ class TestStage1Command extends Command
         }
 
         $this->info("\n✔ ¡Etapa 1 completada con éxito! El pipeline Vectorial (Qdrant + Ollama + Laravel) funciona correctamente.");
+
         return Command::SUCCESS;
     }
 }

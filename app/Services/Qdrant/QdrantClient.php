@@ -9,6 +9,7 @@ use RuntimeException;
 class QdrantClient
 {
     protected string $host;
+
     protected ?string $apiKey;
 
     public function __construct(?string $host = null, ?string $apiKey = null)
@@ -57,13 +58,13 @@ class QdrantClient
 
         $response = $this->client()->put("/collections/{$collection}", $payload);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             Log::error('Failed to create Qdrant collection', [
                 'collection' => $collection,
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
-            throw new RuntimeException("Qdrant createCollection error: " . $response->body());
+            throw new RuntimeException('Qdrant createCollection error: '.$response->body());
         }
 
         return true;
@@ -93,18 +94,18 @@ class QdrantClient
      */
     public function upsertPoints(string $collection, array $points, bool $wait = true): bool
     {
-        $url = "/collections/{$collection}/points" . ($wait ? '?wait=true' : '');
+        $url = "/collections/{$collection}/points".($wait ? '?wait=true' : '');
         $response = $this->client()->put($url, [
             'points' => $points,
         ]);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             Log::error('Failed to upsert points to Qdrant', [
                 'collection' => $collection,
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
-            throw new RuntimeException("Qdrant upsertPoints error: " . $response->body());
+            throw new RuntimeException('Qdrant upsertPoints error: '.$response->body());
         }
 
         return true;
@@ -131,19 +132,19 @@ class QdrantClient
             $payload['score_threshold'] = $scoreThreshold;
         }
 
-        if (!empty($filter)) {
+        if (! empty($filter)) {
             $payload['filter'] = $filter;
         }
 
         $response = $this->client()->post("/collections/{$collection}/points/search", $payload);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             Log::error('Failed to search Qdrant points', [
                 'collection' => $collection,
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
-            throw new RuntimeException("Qdrant search error: " . $response->body());
+            throw new RuntimeException('Qdrant search error: '.$response->body());
         }
 
         return $response->json('result', []);
