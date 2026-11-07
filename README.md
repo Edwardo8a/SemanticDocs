@@ -143,13 +143,15 @@ OLLAMA_EMBED_DIM=768
   - [x] Dashboard de gestión de documentos con métricas en tiempo real, subida de archivos (PDF/TXT/MD) y borrado en cascada (PostgreSQL + archivos + vectores en Qdrant).
   - [x] Vistas Blade modernas y responsivas estilizadas con Tailwind CSS.
   - [x] Tests de integración para controladores de búsqueda y documentos (15 tests en total).
-- [ ] **Etapa 4: Autenticación y Aislamiento Multiusuario**
-  - [ ] Integración de Breeze.
-  - [ ] Filtro estricto de `user_id` en Qdrant.
-  - [ ] Eliminación en cascada (al borrar un documento en PostgreSQL, se eliminan sus vectores en Qdrant).
-- [ ] **Etapa 5: Calidad, CI y Tests**
-  - [ ] Tests con Pest/PHPUnit simulando llamadas HTTP a Qdrant y Ollama.
-  - [ ] Pipeline en GitHub Actions.
+- [x] **Etapa 4: Autenticación y Aislamiento Multiusuario**
+  - [x] Integración de Laravel Breeze (registro, login, logout, gestión de sesiones y perfil).
+  - [x] Protección de rutas con middleware `auth`.
+  - [x] Filtro estricto y obligatorio de `user_id` en Qdrant (aislamiento total: ningún usuario puede ver o buscar vectores de otro).
+  - [x] Eliminación segura con control de acceso (403 Forbidden para usuarios no propietarios) y borrado en cascada en Qdrant.
+- [x] **Etapa 5: Calidad, CI y Tests**
+  - [x] Suite de 41 tests unitarios y de integración con PHPUnit (simulando Ollama y Qdrant).
+  - [x] Formato y estándares de código verificados con Laravel Pint (PSR-12).
+  - [x] Pipeline automatizado de Integración Continua con GitHub Actions (`.github/workflows/ci.yml`).
 - [ ] **Etapa 6 (Extra): RAG Local**
   - [ ] Pasar los fragmentos a un LLM local (`llama3.2`, `qwen2.5`) para generar respuestas sintetizadas con citas.
 - [ ] **Etapa 7 (Extra): Conexión con n8n**

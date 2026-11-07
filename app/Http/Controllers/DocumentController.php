@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Jobs\ProcessDocument;
 use App\Models\Document;
-use App\Models\User;
 use App\Services\Qdrant\QdrantClient;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,7 +19,7 @@ class DocumentController extends Controller
      */
     public function index(): View
     {
-        $userId = auth()->id() ?? User::first()?->id ?? 1;
+        $userId = auth()->id();
 
         $documents = Document::where('user_id', $userId)
             ->latest()
@@ -53,7 +52,7 @@ class DocumentController extends Controller
         $uploadedFile = $request->file('file');
         $originalName = $uploadedFile->getClientOriginalName();
         $title = $request->input('title') ?: pathinfo($originalName, PATHINFO_FILENAME);
-        $userId = auth()->id() ?? User::first()?->id ?? 1;
+        $userId = auth()->id();
 
         // Almacenar archivo con identificador único
         $storedFileName = Str::uuid()->toString().'_'.$originalName;
@@ -80,6 +79,11 @@ class DocumentController extends Controller
      */
     public function destroy(Document $document, QdrantClient $qdrant): RedirectResponse
     {
+        // Aislamiento de usuario: verificar que el documento pertenezca al usuario autenticado
+        if ($document->user_id !== auth()->id()) {
+            abort(403, 'No estás autorizado para eliminar este documento.');
+        }
+
         $collection = config('services.qdrant.collection', 'document_chunks');
 
         // 1. Eliminar vectores en Qdrant

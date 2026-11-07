@@ -14,9 +14,18 @@ class SearchControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_search_page_loads_successfully_without_query(): void
+    public function test_unauthenticated_user_is_redirected_to_login(): void
     {
         $response = $this->get(route('search.index'));
+
+        $response->assertRedirect(route('login'));
+    }
+
+    public function test_search_page_loads_successfully_without_query(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get(route('search.index'));
 
         $response->assertStatus(200);
         $response->assertSee('Busca en tus documentos');
@@ -44,6 +53,11 @@ class SearchControllerTest extends TestCase
         $mockQdrant = Mockery::mock(QdrantClient::class);
         $mockQdrant->shouldReceive('search')
             ->once()
+            ->withArgs(function ($collection, $vector, $limit, $filter) use ($user) {
+                // Verificar que el filtro obliga el user_id del usuario autenticado
+                return isset($filter['must'][0]['match']['value'])
+                    && $filter['must'][0]['match']['value'] === $user->id;
+            })
             ->andReturn([
                 [
                     'id' => 'point-uuid-1',
@@ -62,7 +76,7 @@ class SearchControllerTest extends TestCase
         $this->app->instance(OllamaEmbedder::class, $mockEmbedder);
         $this->app->instance(QdrantClient::class, $mockQdrant);
 
-        $response = $this->get(route('search.index', ['q' => '¿cómo dar de baja una materia?']));
+        $response = $this->actingAs($user)->get(route('search.index', ['q' => '¿cómo dar de baja una materia?']));
 
         $response->assertStatus(200);
         $response->assertSee('Reglamento Académico');

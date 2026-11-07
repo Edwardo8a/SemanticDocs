@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Document;
-use App\Models\User;
 use App\Services\Embeddings\OllamaEmbedder;
 use App\Services\Qdrant\QdrantClient;
 use Illuminate\Http\Request;
@@ -17,7 +16,7 @@ class SearchController extends Controller
      */
     public function index(Request $request, QdrantClient $qdrant, OllamaEmbedder $embedder): View
     {
-        $userId = auth()->id() ?? User::first()?->id ?? 1;
+        $userId = auth()->id();
         $collection = config('services.qdrant.collection', 'document_chunks');
         $queryText = trim((string) $request->input('q', ''));
         $selectedDocumentId = $request->input('document_id');
@@ -39,7 +38,7 @@ class SearchController extends Controller
                 // 1. Generar embedding de la pregunta del usuario
                 $queryVector = $embedder->embed($queryText);
 
-                // 2. Construir filtro obligatorio por usuario (aislamiento de datos)
+                // 2. Construir filtro obligatorio por usuario (aislamiento estricto multiusuario)
                 $mustConditions = [
                     [
                         'key' => 'user_id',

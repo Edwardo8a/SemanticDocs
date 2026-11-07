@@ -17,7 +17,14 @@ class DocumentControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_documents_index_page_loads_successfully(): void
+    public function test_unauthenticated_user_is_redirected_to_login(): void
+    {
+        $response = $this->get(route('documents.index'));
+
+        $response->assertRedirect(route('login'));
+    }
+
+    public function test_documents_index_page_loads_successfully_for_authenticated_user(): void
     {
         $user = User::factory()->create();
 
@@ -31,7 +38,7 @@ class DocumentControllerTest extends TestCase
             'chunks_count' => 12,
         ]);
 
-        $response = $this->get(route('documents.index'));
+        $response = $this->actingAs($user)->get(route('documents.index'));
 
         $response->assertStatus(200);
         $response->assertSee('Gestión de Documentos');
@@ -48,7 +55,7 @@ class DocumentControllerTest extends TestCase
 
         $file = UploadedFile::fake()->create('manual_de_usuario.pdf', 100, 'application/pdf');
 
-        $response = $this->post(route('documents.store'), [
+        $response = $this->actingAs($user)->post(route('documents.store'), [
             'file' => $file,
             'title' => 'Manual de Usuario',
         ]);
@@ -57,6 +64,7 @@ class DocumentControllerTest extends TestCase
         $response->assertSessionHas('success');
 
         $this->assertDatabaseHas('documents', [
+            'user_id' => $user->id,
             'title' => 'Manual de Usuario',
             'original_name' => 'manual_de_usuario.pdf',
             'status' => Document::STATUS_PENDING,
@@ -67,7 +75,9 @@ class DocumentControllerTest extends TestCase
 
     public function test_upload_validates_required_file_and_allowed_extensions(): void
     {
-        $response = $this->post(route('documents.store'), [
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('documents.store'), [
             'file' => null,
         ]);
 
@@ -75,7 +85,7 @@ class DocumentControllerTest extends TestCase
 
         $invalidFile = UploadedFile::fake()->create('virus.exe', 100);
 
-        $response = $this->post(route('documents.store'), [
+        $response = $this->actingAs($user)->post(route('documents.store'), [
             'file' => $invalidFile,
         ]);
 
@@ -104,7 +114,7 @@ class DocumentControllerTest extends TestCase
 
         $this->app->instance(QdrantClient::class, $mockQdrant);
 
-        $response = $this->delete(route('documents.destroy', $document));
+        $response = $this->actingAs($user)->delete(route('documents.destroy', $document));
 
         $response->assertRedirect(route('documents.index'));
         $response->assertSessionHas('success');
@@ -114,5 +124,27 @@ class DocumentControllerTest extends TestCase
         ]);
 
         Storage::disk('local')->assertMissing('documents/test.pdf');
+    }
+
+    public function test_user_cannot_destroy_another_users_document(): void
+    {
+        $owner = User::factory()->create();
+        $stranger = User::factory()->create();
+
+        $document = Document::create([
+            'user_id' => $owner->id,
+            'title' => 'Documento Privado',
+            'original_name' => 'privado.pdf',
+            'path' => 'documents/privado.pdf',
+            'status' => Document::STATUS_READY,
+        ]);
+
+        $response = $this->actingAs($stranger)->delete(route('documents.destroy', $document));
+
+        $response->assertStatus(403);
+
+        $this->assertDatabaseHas('documents', [
+            'id' => $document->id,
+        ]);
     }
 }
