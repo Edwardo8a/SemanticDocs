@@ -136,10 +136,13 @@ OLLAMA_EMBED_DIM=768
   - [x] Job en cola `ProcessDocument` con generación de embeddings en lotes y actualización de estados.
   - [x] Comando artisan `semanticdocs:ingest` para pruebas directas o asíncronas vía colas.
   - [x] Suite de tests automatizados unitarios y de integración para la ingesta.
-- [ ] **Etapa 3: Búsqueda y UI**
-  - [ ] Controlador `SearchController` y `DocumentController`.
-  - [ ] Formulario de búsqueda con score de confianza y fragmento resaltado.
-  - [ ] Dashboard de documentos subidos con estado de procesamiento.
+- [x] **Etapa 3: Búsqueda y UI**
+  - [x] Controlador `SearchController` y `DocumentController`.
+  - [x] Formulario interactivo de búsqueda semántica con chips de sugerencias rápidas.
+  - [x] Tarjetas de resultados con métricas de latencia, score de similitud Coseno e insignias de confianza.
+  - [x] Dashboard de gestión de documentos con métricas en tiempo real, subida de archivos (PDF/TXT/MD) y borrado en cascada (PostgreSQL + archivos + vectores en Qdrant).
+  - [x] Vistas Blade modernas y responsivas estilizadas con Tailwind CSS.
+  - [x] Tests de integración para controladores de búsqueda y documentos (15 tests en total).
 - [ ] **Etapa 4: Autenticación y Aislamiento Multiusuario**
   - [ ] Integración de Breeze.
   - [ ] Filtro estricto de `user_id` en Qdrant.
