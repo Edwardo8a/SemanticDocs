@@ -103,7 +103,7 @@ class SearchController extends Controller
                         ];
                     }, $results);
 
-                    $ragAnswer = $rag->generateAnswer($queryText, $ragChunks);
+                    $ragAnswer = $rag->generateAnswer($queryText, $ragChunks, maxChunks: 2);
                 }
 
                 $latencyMs = round((microtime(true) - $startTime) * 1000, 1);

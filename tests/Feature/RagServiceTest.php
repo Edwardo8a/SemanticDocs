@@ -19,9 +19,12 @@ class RagServiceTest extends TestCase
     public function test_generate_answer_calls_ollama_and_formats_rag_response(): void
     {
         Http::fake([
-            '*/api/generate' => Http::response([
+            '*/api/chat' => Http::response([
                 'model' => 'llama3.2:1b',
-                'response' => 'Para dar de baja una materia debes solicitarla ante Servicios Escolares [Reglamento UTSJR, Pág. 12].',
+                'message' => [
+                    'role' => 'assistant',
+                    'content' => 'Para dar de baja una materia debes solicitarla ante Servicios Escolares [Reglamento UTSJR, Pág. 12].',
+                ],
                 'done' => true,
             ], 200),
         ]);
@@ -55,17 +58,17 @@ class RagServiceTest extends TestCase
         Http::assertSent(function ($request) {
             $data = $request->data();
 
-            return $request->url() === 'http://localhost:11434/api/generate'
+            return $request->url() === 'http://localhost:11434/api/chat'
                 && $data['model'] === 'llama3.2:1b'
-                && str_contains($data['prompt'], 'Reglamento UTSJR')
-                && str_contains($data['prompt'], '¿Cómo doy de baja una materia?');
+                && isset($data['messages'])
+                && count($data['messages']) === 2;
         });
     }
 
     public function test_generate_answer_handles_ollama_failure_gracefully(): void
     {
         Http::fake([
-            '*/api/generate' => Http::response(['error' => 'Model busy'], 500),
+            '*/api/chat' => Http::response(['error' => 'Model busy'], 500),
         ]);
 
         $rag = new RagService;

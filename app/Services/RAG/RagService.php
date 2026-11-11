@@ -21,12 +21,12 @@ class RagService
     }
 
     /**
-     * Generate an answer based strictly on retrieved document chunks.
+     * Generate an answer based strictly on retrieved document chunks using Ollama chat endpoint.
      *
      * @param  array<int, array<string, mixed>>  $chunks
      * @return array{answer: string, model: string, sources: array<int, array{title: string, page: int|string, score: float}>, duration_ms: ?float}|null
      */
-    public function generateAnswer(string $question, array $chunks, int $maxChunks = 2): ?array
+    public function generateAnswer(string $question, array $chunks, int $maxChunks = 3): ?array
     {
         $cleanQuestion = trim($question);
         if ($cleanQuestion === '' || empty($chunks)) {
@@ -35,7 +35,10 @@ class RagService
 
         $selectedChunks = array_slice($chunks, 0, $maxChunks);
         $context = $this->buildContext($selectedChunks);
-        $prompt = $this->buildPrompt($cleanQuestion, $context);
+
+        $systemPrompt = 'Eres el asistente de búsqueda documental de SemanticDocs. Responde a la pregunta del usuario en español de forma clara, directa y fundamentada basándote en los fragmentos de documentos provistos. Cita el documento y la página correspondiente. Si la información no se encuentra en los fragmentos, indícalo de manera amable.';
+
+        $userMessage = "Fragmentos de contexto:\n{$context}\n\nPregunta: {$cleanQuestion}\n\nRespuesta estructurada:";
 
         $sources = array_map(function (array $chunk) {
             return [
@@ -48,13 +51,16 @@ class RagService
         try {
             $startTime = microtime(true);
 
-            $response = Http::timeout($this->timeout)->post("{$this->host}/api/generate", [
+            $response = Http::timeout($this->timeout)->post("{$this->host}/api/chat", [
                 'model' => $this->model,
-                'prompt' => $prompt,
+                'messages' => [
+                    ['role' => 'system', 'content' => $systemPrompt],
+                    ['role' => 'user', 'content' => $userMessage],
+                ],
                 'stream' => false,
                 'options' => [
                     'temperature' => 0.2,
-                    'num_predict' => 200,
+                    'num_predict' => 250,
                 ],
             ]);
 
@@ -65,7 +71,7 @@ class RagService
             }
 
             $data = $response->json();
-            $answer = trim($data['response'] ?? '');
+            $answer = trim($data['message']['content'] ?? '');
 
             if ($answer === '') {
                 return null;
@@ -101,40 +107,15 @@ class RagService
             $page = $chunk['page'] ?? 1;
             $content = trim($chunk['content'] ?? '');
 
-            // Limitar longitud del fragmento para agilizar inferencia en CPU
-            if (mb_strlen($content) > 650) {
-                $content = mb_substr($content, 0, 650).'...';
+            // Acotar longitud por fragmento para evitar saturar contexto en CPU
+            if (mb_strlen($content) > 750) {
+                $content = mb_substr($content, 0, 750).'...';
             }
 
             $sections[] = "[Fragmento {$num}] Documento: {$title} (Pág. {$page})\n{$content}";
         }
 
         return implode("\n\n---\n\n", $sections);
-    }
-
-    /**
-     * Build the system and user prompt in Spanish.
-     */
-    protected function buildPrompt(string $question, string $context): string
-    {
-        return <<<PROMPT
-Eres el asistente de búsqueda documental inteligente de SemanticDocs.
-Tu tarea es responder la pregunta del usuario utilizando estricta y exclusivamente los fragmentos de contexto proporcionados abajo.
-
-Reglas obligatorias:
-1. Responde en español de manera clara, concisa y estructurada.
-2. Fundamenta tu respuesta citando el nombre del documento y número de página de donde obtuviste la información (ejemplo: "[Reglamento UTSJR, Pág. 8]").
-3. Si los fragmentos no contienen la información para responder la pregunta, di textualmente: "La información solicitada no se encuentra disponible en los documentos consultados."
-4. No asumas ni inventes datos que no figuren en el contexto.
-
-=== CONTEXTO DISPONIBLE ===
-{$context}
-=== FIN CONTEXTO ===
-
-Pregunta del usuario: {$question}
-
-Respuesta fundamentada:
-PROMPT;
     }
 
     public function getModel(): string
