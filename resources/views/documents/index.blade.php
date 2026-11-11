@@ -41,6 +41,28 @@
         </div>
     </div>
 
+    @if($stats['processing'] > 0)
+        <!-- Processing notice & auto-reload -->
+        <div class="bg-indigo-50 border border-indigo-200 text-brand-900 rounded-2xl p-4 flex items-center justify-between text-xs sm:text-sm">
+            <div class="flex items-center space-x-3">
+                <svg class="w-5 h-5 text-brand-600 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+                <div>
+                    <span class="font-bold">Hay {{ $stats['processing'] }} documento(s) en proceso o en cola.</span>
+                    <span class="text-brand-700 ml-1">Esta vista se actualizará automáticamente cuando terminen.</span>
+                </div>
+            </div>
+            <span class="hidden sm:inline-block font-mono text-xs bg-indigo-100 text-brand-700 px-2.5 py-1 rounded-lg">Auto-refresh 5s</span>
+        </div>
+        <script>
+            setTimeout(function() {
+                window.location.reload();
+            }, 5000);
+        </script>
+    @endif
+
     <!-- Upload Card -->
     <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
         <div class="flex items-center space-x-3 mb-6">
@@ -202,6 +224,15 @@
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                                 </svg>
                                             </a>
+                                        @else
+                                            <form action="{{ route('documents.retry', $doc) }}" method="POST">
+                                                @csrf
+                                                <button type="submit" class="p-1.5 text-slate-400 hover:text-amber-600 rounded-lg hover:bg-amber-50 transition-colors" title="Reintentar procesamiento">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                    </svg>
+                                                </button>
+                                            </form>
                                         @endif
 
                                         <form action="{{ route('documents.destroy', $doc) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar este documento y todos sus vectores asociados en Qdrant?');">

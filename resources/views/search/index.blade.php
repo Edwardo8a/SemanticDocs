@@ -55,18 +55,27 @@
                 </button>
             </div>
 
-            <!-- Optional Document Filter -->
+            <!-- Optional Document Filter & RAG toggle -->
             <div class="flex flex-wrap items-center justify-between text-xs text-slate-500 px-2 pt-1 gap-2">
-                <div class="flex items-center space-x-2">
-                    <label for="document_id" class="font-medium text-slate-600">Filtrar por documento:</label>
-                    <select name="document_id" id="document_id" onchange="this.form.submit()" class="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 focus:outline-none focus:border-brand-500 text-xs">
-                        <option value="">Todos los documentos</option>
-                        @foreach($userDocuments as $doc)
-                            <option value="{{ $doc->id }}" {{ $selectedDocumentId == $doc->id ? 'selected' : '' }}>
-                                {{ Str::limit($doc->title, 40) }}
-                            </option>
-                        @endforeach
-                    </select>
+                <div class="flex flex-wrap items-center space-x-3">
+                    <div class="flex items-center space-x-2">
+                        <label for="document_id" class="font-medium text-slate-600">Filtrar por documento:</label>
+                        <select name="document_id" id="document_id" onchange="this.form.submit()" class="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 focus:outline-none focus:border-brand-500 text-xs">
+                            <option value="">Todos los documentos</option>
+                            @foreach($userDocuments as $doc)
+                                <option value="{{ $doc->id }}" {{ $selectedDocumentId == $doc->id ? 'selected' : '' }}>
+                                    {{ Str::limit($doc->title, 40) }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <label class="inline-flex items-center space-x-1.5 cursor-pointer select-none bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg hover:bg-slate-100 transition-colors">
+                        <input type="checkbox" name="rag" value="1" {{ ($useRag ?? true) ? 'checked' : '' }} class="rounded border-slate-300 text-brand-600 shadow-xs focus:ring-brand-500">
+                        <span class="font-semibold text-slate-700 flex items-center space-x-1">
+                            <span>✨ Síntesis IA (RAG)</span>
+                        </span>
+                    </label>
                 </div>
 
                 @if($latencyMs > 0)
@@ -100,6 +109,12 @@
 
     <!-- Results Section -->
     <div class="max-w-4xl mx-auto space-y-4">
+        @if(!empty($error))
+            <div class="bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl p-4 text-sm">
+                <strong>Error:</strong> {{ $error }}
+            </div>
+        @endif
+
         @if(!empty($query))
             <div class="flex items-center justify-between border-b border-slate-200 pb-3">
                 <h2 class="text-lg font-bold text-slate-900 flex items-center space-x-2">
@@ -132,9 +147,63 @@
                     </a>
                 </div>
             @else
+                @if(!empty($ragAnswer))
+                    <!-- RAG AI Answer Card -->
+                    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900 via-brand-900 to-slate-900 text-white p-6 sm:p-7 shadow-xl border border-indigo-700/50 space-y-4">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-4">
+                            <div class="flex items-center space-x-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-brand-400 text-slate-950 flex items-center justify-center font-black shadow-md shadow-amber-400/20 text-sm">
+                                    ✨
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-white flex items-center space-x-2">
+                                        <span>Respuesta Sintetizada con IA</span>
+                                        <span class="text-xs font-mono font-medium bg-white/15 text-indigo-200 px-2 py-0.5 rounded-full">RAG</span>
+                                    </h3>
+                                    <p class="text-xs text-indigo-200/80">Generada exclusivamente a partir de tus documentos recuperados</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center space-x-2 text-xs font-mono text-indigo-200">
+                                <span class="bg-indigo-950/60 border border-indigo-500/30 px-2.5 py-1 rounded-lg">
+                                    Modelo: {{ $ragAnswer['model'] }}
+                                </span>
+                                @if(!empty($ragAnswer['duration_ms']))
+                                    <span class="bg-indigo-950/60 border border-indigo-500/30 px-2 py-1 rounded-lg">
+                                        {{ round($ragAnswer['duration_ms'] / 1000, 1) }}s
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Answer content -->
+                        <div class="text-slate-100 text-sm sm:text-base leading-relaxed space-y-2 whitespace-pre-line font-normal">
+                            {{ $ragAnswer['answer'] }}
+                        </div>
+
+                        <!-- Sources citations -->
+                        @if(!empty($ragAnswer['sources']))
+                            <div class="pt-3 border-t border-white/10 flex flex-wrap items-center gap-2">
+                                <span class="text-xs font-semibold text-indigo-300">Fuentes citadas:</span>
+                                @foreach($ragAnswer['sources'] as $srcIdx => $source)
+                                    <a 
+                                        href="#chunk-{{ $srcIdx + 1 }}" 
+                                        class="inline-flex items-center space-x-1.5 text-xs bg-white/10 hover:bg-white/20 text-indigo-100 px-2.5 py-1 rounded-lg transition-colors border border-white/10"
+                                        title="Ver fragmento #{{ $srcIdx + 1 }}"
+                                    >
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                        <span class="font-medium">{{ Str::limit($source['title'], 25) }}</span>
+                                        <span class="text-indigo-300">· Pág. {{ $source['page'] }}</span>
+                                    </a>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                @endif
+
                 <div class="space-y-4">
                     @foreach($results as $index => $hit)
-                        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow space-y-3">
+                        <div id="chunk-{{ $index + 1 }}" class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow space-y-3 scroll-mt-20">
                             <!-- Card Header: Title, Page, Score Badge -->
                             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
                                 <div class="flex items-center space-x-2.5">

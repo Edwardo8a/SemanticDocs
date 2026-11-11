@@ -147,4 +147,51 @@ class DocumentControllerTest extends TestCase
             'id' => $document->id,
         ]);
     }
+
+    public function test_user_can_retry_document_processing(): void
+    {
+        Queue::fake();
+
+        $user = User::factory()->create();
+
+        $document = Document::create([
+            'user_id' => $user->id,
+            'title' => 'Doc Fallido',
+            'original_name' => 'doc.pdf',
+            'path' => 'documents/doc.pdf',
+            'status' => Document::STATUS_FAILED,
+            'error_message' => 'Error previo',
+        ]);
+
+        $response = $this->actingAs($user)->post(route('documents.retry', $document));
+
+        $response->assertRedirect(route('documents.index'));
+        $response->assertSessionHas('success');
+
+        $document->refresh();
+        $this->assertTrue($document->isPending());
+        $this->assertNull($document->error_message);
+
+        Queue::assertPushed(ProcessDocument::class, function ($job) use ($document) {
+            return $job->document->id === $document->id;
+        });
+    }
+
+    public function test_user_cannot_retry_another_users_document(): void
+    {
+        $owner = User::factory()->create();
+        $stranger = User::factory()->create();
+
+        $document = Document::create([
+            'user_id' => $owner->id,
+            'title' => 'Doc Privado',
+            'original_name' => 'privado.pdf',
+            'path' => 'documents/privado.pdf',
+            'status' => Document::STATUS_FAILED,
+        ]);
+
+        $response = $this->actingAs($stranger)->post(route('documents.retry', $document));
+
+        $response->assertStatus(403);
+    }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Document;
 use App\Services\Embeddings\OllamaEmbedder;
 use App\Services\Qdrant\QdrantClient;
+use App\Services\RAG\RagService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
@@ -12,14 +13,19 @@ use Illuminate\View\View;
 class SearchController extends Controller
 {
     /**
-     * Handle semantic search queries and display results.
+     * Handle semantic search queries and display results with optional RAG response.
      */
-    public function index(Request $request, QdrantClient $qdrant, OllamaEmbedder $embedder): View
-    {
+    public function index(
+        Request $request,
+        QdrantClient $qdrant,
+        OllamaEmbedder $embedder,
+        RagService $rag
+    ): View {
         $userId = auth()->id();
         $collection = config('services.qdrant.collection', 'document_chunks');
         $queryText = trim((string) $request->input('q', ''));
         $selectedDocumentId = $request->input('document_id');
+        $useRag = $request->has('q') ? $request->boolean('rag', true) : true;
 
         // Documentos disponibles del usuario para el filtro opcional
         $userDocuments = Document::where('user_id', $userId)
@@ -28,6 +34,7 @@ class SearchController extends Controller
             ->get(['id', 'title']);
 
         $results = [];
+        $ragAnswer = null;
         $latencyMs = 0;
         $error = null;
 
@@ -80,6 +87,20 @@ class SearchController extends Controller
                     ];
                 }
 
+                // 4. Generación Aumentada por Recuperación (RAG) con LLM local
+                if ($useRag && ! empty($results)) {
+                    $ragChunks = array_map(function ($r) {
+                        return [
+                            'document_title' => $r['title'],
+                            'page' => $r['page'],
+                            'content' => $r['text'],
+                            'score' => $r['score'],
+                        ];
+                    }, $results);
+
+                    $ragAnswer = $rag->generateAnswer($queryText, $ragChunks);
+                }
+
                 $latencyMs = round((microtime(true) - $startTime) * 1000, 1);
             } catch (\Throwable $e) {
                 Log::error('Error en búsqueda semántica: '.$e->getMessage(), [
@@ -92,7 +113,9 @@ class SearchController extends Controller
         return view('search.index', [
             'query' => $queryText,
             'selectedDocumentId' => $selectedDocumentId,
+            'useRag' => $useRag,
             'results' => $results,
+            'ragAnswer' => $ragAnswer,
             'userDocuments' => $userDocuments,
             'latencyMs' => $latencyMs,
             'error' => $error,

@@ -75,6 +75,27 @@ class DocumentController extends Controller
     }
 
     /**
+     * Retry processing a failed or pending document.
+     */
+    public function retry(Document $document): RedirectResponse
+    {
+        if ($document->user_id !== auth()->id()) {
+            abort(403, 'No estás autorizado para reprocesar este documento.');
+        }
+
+        $document->update([
+            'status' => Document::STATUS_PENDING,
+            'error_message' => null,
+        ]);
+
+        ProcessDocument::dispatch($document);
+
+        return redirect()
+            ->route('documents.index')
+            ->with('success', "Se ha reenviado el documento '{$document->title}' a la cola de procesamiento.");
+    }
+
+    /**
      * Delete the document from PostgreSQL, disk storage, and Qdrant.
      */
     public function destroy(Document $document, QdrantClient $qdrant): RedirectResponse
