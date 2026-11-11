@@ -27,6 +27,11 @@ class SearchController extends Controller
         $selectedDocumentId = $request->input('document_id');
         $useRag = $request->has('q') ? $request->boolean('rag', true) : true;
 
+        // Ampliar tiempo límite de ejecución para inferencia de LLM en CPU
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(120);
+        }
+
         // Documentos disponibles del usuario para el filtro opcional
         $userDocuments = Document::where('user_id', $userId)
             ->where('status', Document::STATUS_READY)

@@ -17,8 +17,8 @@ timeout /t 2 /nobreak >nul
 echo [2/3] Iniciando procesador de colas en segundo plano (queue:listen)...
 start "SemanticDocs - Cola de Procesamiento" cmd /k "color 0B && title SemanticDocs Queue Worker && cd /d %~dp0 && php artisan queue:listen --tries=3"
 
-echo [3/3] Iniciando servidor web de Laravel en http://localhost:8000...
+echo [3/3] Iniciando servidor web de Laravel en http://localhost:8001...
 echo.
 echo Presiona Ctrl+C para detener el servidor web.
 echo =====================================================================
-php artisan serve
+php artisan serve --port=8001

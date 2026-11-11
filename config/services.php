@@ -46,7 +46,7 @@ return [
         'embed_model' => env('OLLAMA_EMBED_MODEL', 'nomic-embed-text'),
         'embed_dim' => (int) env('OLLAMA_EMBED_DIM', 768),
         'rag_model' => env('OLLAMA_RAG_MODEL', 'llama3.2:1b'),
-        'timeout' => (int) env('OLLAMA_TIMEOUT', 45),
+        'timeout' => (int) env('OLLAMA_TIMEOUT', 25),
     ],
 
 ];

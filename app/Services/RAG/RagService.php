@@ -17,7 +17,7 @@ class RagService
     {
         $this->host = rtrim($host ?: config('services.ollama.host', 'http://localhost:11434'), '/');
         $this->model = $model ?: config('services.ollama.rag_model', 'llama3.2:1b');
-        $this->timeout = $timeout ?: (int) config('services.ollama.timeout', 45);
+        $this->timeout = $timeout ?: (int) config('services.ollama.timeout', 25);
     }
 
     /**
@@ -26,7 +26,7 @@ class RagService
      * @param  array<int, array<string, mixed>>  $chunks
      * @return array{answer: string, model: string, sources: array<int, array{title: string, page: int|string, score: float}>, duration_ms: ?float}|null
      */
-    public function generateAnswer(string $question, array $chunks, int $maxChunks = 4): ?array
+    public function generateAnswer(string $question, array $chunks, int $maxChunks = 2): ?array
     {
         $cleanQuestion = trim($question);
         if ($cleanQuestion === '' || empty($chunks)) {
@@ -54,6 +54,7 @@ class RagService
                 'stream' => false,
                 'options' => [
                     'temperature' => 0.2,
+                    'num_predict' => 200,
                 ],
             ]);
 
@@ -99,6 +100,11 @@ class RagService
             $title = $chunk['document_title'] ?? 'Documento';
             $page = $chunk['page'] ?? 1;
             $content = trim($chunk['content'] ?? '');
+
+            // Limitar longitud del fragmento para agilizar inferencia en CPU
+            if (mb_strlen($content) > 650) {
+                $content = mb_substr($content, 0, 650).'...';
+            }
 
             $sections[] = "[Fragmento {$num}] Documento: {$title} (Pág. {$page})\n{$content}";
         }
